@@ -4,7 +4,7 @@ from discord.ext import commands
 import traceback
 import os
 from dotenv import load_dotenv
-from datetime import datetime
+import datetime
 
 load_dotenv()
 
