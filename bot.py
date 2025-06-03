@@ -33,7 +33,8 @@ class MyBot(commands.Bot):
         if message.author.bot:
             return
 
-        if message.content.lower().startswith('اسم'):
+        # Check for exact word "اسم" followed by space or end of message
+        if message.content.lower().startswith('اسم ') or message.content.lower() == 'اسم':
             # Split the message content
             parts = message.content.split()
             if len(parts) < 3:
