@@ -16,7 +16,7 @@ additional_channel_id = 1378657582507491328  # Additional channel ID
 
 class MyBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix='/', intents=intents)
+        super().__init__(command_prefix='!', intents=intents)
         self.synced = False
 
     async def setup_hook(self):
@@ -27,6 +27,50 @@ class MyBot(commands.Bot):
         await self.tree.sync(guild=guild)
         print(f"Synced commands to guild {guild.id} successfully!")
         self.synced = True
+
+    async def on_message(self, message):
+        if message.author.bot:
+            return
+
+        if message.content.lower().startswith('اسم'):
+            # Split the message content
+            parts = message.content.split()
+            if len(parts) < 3:
+                await message.channel.send('الاستخدام الصحيح: اسم @العضو الاسم_الجديد')
+                return
+
+            # Check for Manage Nicknames permission
+            if not message.author.guild_permissions.manage_nicknames:
+                await message.channel.send('ليس لديك صلاحية تغيير الأسماء.')
+                return
+
+            # Get the member mention
+            try:
+                member = message.mentions[0]
+            except IndexError:
+                await message.channel.send('الرجاء منشن العضو المراد تغيير اسمه.')
+                return
+
+            # Get the new nickname (everything after the mention)
+            new_nickname = ' '.join(parts[2:])
+
+            # Check if user is trying to change nickname of someone with higher role
+            user_highest_role = max(message.author.roles, key=lambda r: r.position)
+            target_highest_role = max(member.roles, key=lambda r: r.position)
+            
+            if target_highest_role.position >= user_highest_role.position:
+                await message.channel.send('لا يمكنك تغيير اسم شخص لديه رتبة اعلى منك.')
+                return
+
+            try:
+                await member.edit(nick=new_nickname)
+                await message.channel.send(f'تم تغيير اسم {member.mention} إلى {new_nickname}')
+            except discord.Forbidden:
+                await message.channel.send('ليس لدي الصلاحية لتغيير الاسم.')
+            except Exception as e:
+                await message.channel.send(f'حدث خطأ غير متوقع: {e}')
+
+        await self.process_commands(message)
 
 bot = MyBot()
 
