@@ -121,6 +121,32 @@ async def remove(interaction: discord.Interaction, member: discord.Member, role:
     except Exception as e:
         await interaction.followup.send(f'حدث خطأ غير متوقع: {e}')
 
+@bot.command(name="اسم")
+@commands.has_permissions(manage_nicknames=True)
+async def set_nickname(ctx, member: discord.Member, *, new_nickname: str):
+    # Check if user is trying to change nickname of someone with higher role
+    user_highest_role = max(ctx.author.roles, key=lambda r: r.position)
+    target_highest_role = max(member.roles, key=lambda r: r.position)
+    
+    if target_highest_role.position >= user_highest_role.position:
+        await ctx.send('لا يمكنك تغيير اسم شخص لديه رتبة اعلى منك.')
+        return
+
+    try:
+        await member.edit(nick=new_nickname)
+        await ctx.send(f'تم تغيير اسم {member.mention} إلى {new_nickname}')
+    except discord.Forbidden:
+        await ctx.send('ليس لدي الصلاحية لتغيير الاسم.')
+    except Exception as e:
+        await ctx.send(f'حدث خطأ غير متوقع: {e}')
+
+@set_nickname.error
+async def set_nickname_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send('ليس لديك صلاحية تغيير الأسماء.')
+    else:
+        await ctx.send(f'حدث خطأ غير متوقع: {error}')
+
 # Get token from environment variable
 token = os.getenv('DISCORD_TOKEN')
 if not token:
