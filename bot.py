@@ -33,6 +33,10 @@ class MyBot(commands.Bot):
         if message.author.bot:
             return
 
+        # Check for specific user mention
+        if "<@1307733573549166713>" in message.content:
+            await message.channel.send("اف تبي القادح حموو 😏 🧤 خله يرجال لاتنمشه تراه بيقدح عليك يلد")
+
         # Check for exact word "اسم" followed by space or end of message
         if message.content.lower().startswith('اسم ') or message.content.lower() == 'اسم':
             # Split the message content
