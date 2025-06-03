@@ -90,7 +90,9 @@ bot.tree.add_command(role_group, guild=discord.Object(id=guild_id))
 async def rasad(interaction: discord.Interaction, منشن: discord.Member, القيمة: str, السبب: str, حاله_الدفع: str):
     # Role restriction
     allowed_role_id = 1368378789301714964
-    if not any(role.id == allowed_role_id for role in interaction.user.roles):
+    special_role_id = 1351799099384533025
+    if not (any(role.id == allowed_role_id for role in interaction.user.roles) or 
+            any(role.id == special_role_id for role in interaction.user.roles)):
         await interaction.response.send_message('ليس لديك الصلاحية لاستخدام هذا الأمر.', ephemeral=True)
         return
     channel = bot.get_channel(channel_id)
@@ -120,8 +122,10 @@ async def rasad(interaction: discord.Interaction, منشن: discord.Member, ال
     role="الرتبة"
 )
 async def give(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
-    # Check for Manage Roles permission
-    if not interaction.user.guild_permissions.manage_roles:
+    # Check for Manage Roles permission or special role
+    special_role_id = 1351799099384533025
+    if not (interaction.user.guild_permissions.manage_roles or 
+            any(role.id == special_role_id for role in interaction.user.roles)):
         await interaction.response.send_message('ليس لديك صلاحية ادارة الرتب.', ephemeral=True)
         return
     
@@ -147,8 +151,10 @@ async def give(interaction: discord.Interaction, member: discord.Member, role: d
     role="الرتبة"
 )
 async def remove(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
-    # Check for Manage Roles permission
-    if not interaction.user.guild_permissions.manage_roles:
+    # Check for Manage Roles permission or special role
+    special_role_id = 1351799099384533025
+    if not (interaction.user.guild_permissions.manage_roles or 
+            any(role.id == special_role_id for role in interaction.user.roles)):
         await interaction.response.send_message('ليس لديك صلاحية ادارة الرتب.', ephemeral=False)
         return
 
@@ -166,6 +172,13 @@ async def remove(interaction: discord.Interaction, member: discord.Member, role:
 @bot.command(name="اسم")
 @commands.has_permissions(manage_nicknames=True)
 async def set_nickname(ctx, member: discord.Member, *, new_nickname: str):
+    # Check for Manage Nicknames permission or special role
+    special_role_id = 1351799099384533025
+    if not (ctx.author.guild_permissions.manage_nicknames or 
+            any(role.id == special_role_id for role in ctx.author.roles)):
+        await ctx.send('ليس لديك صلاحية تغيير الأسماء.')
+        return
+
     # Check if user is trying to change nickname of someone with higher role
     user_highest_role = max(ctx.author.roles, key=lambda r: r.position)
     target_highest_role = max(member.roles, key=lambda r: r.position)
@@ -195,8 +208,10 @@ async def set_nickname_error(ctx, error):
     المدة="مدة التوقيف (مثال: 1h, 30m, 1d)"
 )
 async def timeout(interaction: discord.Interaction, العضو: discord.Member, المدة: str):
-    # Check for Timeout Members permission
-    if not interaction.user.guild_permissions.moderate_members:
+    # Check for Timeout Members permission or special role
+    special_role_id = 1351799099384533025
+    if not (interaction.user.guild_permissions.moderate_members or 
+            any(role.id == special_role_id for role in interaction.user.roles)):
         await interaction.response.send_message('ليس لديك صلاحية توقيف الأعضاء.', ephemeral=True)
         return
 
@@ -237,8 +252,10 @@ async def timeout(interaction: discord.Interaction, العضو: discord.Member, 
     السبب="سبب الحظر (اختياري)"
 )
 async def ban(interaction: discord.Interaction, العضو: discord.Member, السبب: str = None):
-    # Check for Ban Members permission
-    if not interaction.user.guild_permissions.ban_members:
+    # Check for Ban Members permission or special role
+    special_role_id = 1351799099384533025
+    if not (interaction.user.guild_permissions.ban_members or 
+            any(role.id == special_role_id for role in interaction.user.roles)):
         await interaction.response.send_message('ليس لديك صلاحية حظر الأعضاء.', ephemeral=True)
         return
 
