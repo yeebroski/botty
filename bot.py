@@ -4,6 +4,7 @@ from discord.ext import commands
 import traceback
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -182,6 +183,87 @@ async def set_nickname_error(ctx, error):
         await ctx.send('ليس لديك صلاحية تغيير الأسماء.')
     else:
         await ctx.send(f'حدث خطأ غير متوقع: {error}')
+
+@bot.tree.command(name="timeout", description="توقيف عضو مؤقتاً", guild=discord.Object(id=guild_id))
+@app_commands.describe(
+    العضو="العضو المراد توقيفه",
+    المدة="مدة التوقيف (مثال: 1h, 30m, 1d)"
+)
+async def timeout(interaction: discord.Interaction, العضو: discord.Member, المدة: str):
+    # Check for Timeout Members permission
+    if not interaction.user.guild_permissions.moderate_members:
+        await interaction.response.send_message('ليس لديك صلاحية توقيف الأعضاء.', ephemeral=True)
+        return
+
+    # Parse the duration
+    try:
+        # Convert the duration string to seconds
+        duration = 0
+        if المدة.endswith('s'):
+            duration = int(المدة[:-1])
+        elif المدة.endswith('m'):
+            duration = int(المدة[:-1]) * 60
+        elif المدة.endswith('h'):
+            duration = int(المدة[:-1]) * 3600
+        elif المدة.endswith('d'):
+            duration = int(المدة[:-1]) * 86400
+        else:
+            await interaction.response.send_message('صيغة المدة غير صحيحة. استخدم s, m, h, أو d (مثال: 1h, 30m, 1d)', ephemeral=True)
+            return
+
+        # Check if duration is within limits (max 28 days)
+        if duration > 2419200:  # 28 days in seconds
+            await interaction.response.send_message('لا يمكن توقيف عضو لأكثر من 28 يوم.', ephemeral=True)
+            return
+
+        # Apply the timeout
+        await العضو.timeout(datetime.timedelta(seconds=duration), reason=f"Timeout by {interaction.user}")
+        await interaction.response.send_message(f'تم توقيف {العضو.mention} لمدة {المدة}', ephemeral=False)
+    except ValueError:
+        await interaction.response.send_message('صيغة المدة غير صحيحة. استخدم أرقام فقط (مثال: 1h, 30m, 1d)', ephemeral=True)
+    except discord.Forbidden:
+        await interaction.response.send_message('ليس لدي الصلاحية لتوقيف هذا العضو.', ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f'حدث خطأ غير متوقع: {e}', ephemeral=True)
+
+@bot.tree.command(name="ban", description="حظر عضو", guild=discord.Object(id=guild_id))
+@app_commands.describe(
+    العضو="العضو المراد حظره",
+    السبب="سبب الحظر (اختياري)"
+)
+async def ban(interaction: discord.Interaction, العضو: discord.Member, السبب: str = None):
+    # Check for Ban Members permission
+    if not interaction.user.guild_permissions.ban_members:
+        await interaction.response.send_message('ليس لديك صلاحية حظر الأعضاء.', ephemeral=True)
+        return
+
+    # Check if user is trying to ban someone with higher role
+    user_highest_role = max(interaction.user.roles, key=lambda r: r.position)
+    target_highest_role = max(العضو.roles, key=lambda r: r.position)
+    
+    if target_highest_role.position >= user_highest_role.position:
+        await interaction.response.send_message('لا يمكنك حظر شخص لديه رتبة اعلى منك.', ephemeral=True)
+        return
+
+    try:
+        # Create the ban reason
+        ban_reason = f"Banned by {interaction.user}"
+        if السبب:
+            ban_reason += f" | Reason: {السبب}"
+
+        # Ban the member
+        await العضو.ban(reason=ban_reason)
+        
+        # Send confirmation message
+        if السبب:
+            await interaction.response.send_message(f'تم حظر {العضو.mention}\nالسبب: {السبب}', ephemeral=False)
+        else:
+            await interaction.response.send_message(f'تم حظر {العضو.mention}', ephemeral=False)
+            
+    except discord.Forbidden:
+        await interaction.response.send_message('ليس لدي الصلاحية لحظر هذا العضو.', ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f'حدث خطأ غير متوقع: {e}', ephemeral=True)
 
 # Get token from environment variable
 token = os.getenv('DISCORD_TOKEN')
