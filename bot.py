@@ -54,14 +54,6 @@ class MyBot(commands.Bot):
             # Get the new nickname (everything after the mention)
             new_nickname = ' '.join(parts[2:])
 
-            # Check if user is trying to change nickname of someone with higher role
-            user_highest_role = max(message.author.roles, key=lambda r: r.position)
-            target_highest_role = max(member.roles, key=lambda r: r.position)
-            
-            if target_highest_role.position >= user_highest_role.position:
-                await message.channel.send('لا يمكنك تغيير اسم شخص لديه رتبة اعلى منك.')
-                return
-
             try:
                 await member.edit(nick=new_nickname)
                 await message.channel.send(f'تم تغيير اسم {member.mention} إلى {new_nickname}')
