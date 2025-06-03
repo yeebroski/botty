@@ -14,6 +14,7 @@ intents.message_content = True
 guild_id = 790828063541559296  # Updated guild ID
 channel_id = 1378756844746706975  # Channel ID for sending violation reports
 additional_channel_id = 1378657582507491328  # Additional channel ID
+log_channel_id = 1379556255059808337 # Log Channel ID
 
 class MyBot(commands.Bot):
     def __init__(self):
@@ -75,6 +76,36 @@ bot = MyBot()
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
+
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    log_channel_id = 1379556255059808337
+    log_channel = after.guild.get_channel(log_channel_id)
+
+    if not log_channel:
+        return # Exit if log channel not found
+
+    # Check for role changes
+    if before.roles != after.roles:
+        roles_added = [role for role in after.roles if role not in before.roles]
+        roles_removed = [role for role in before.roles if role not in after.roles]
+
+        if roles_added:
+            added_roles_mentions = [role.mention for role in roles_added]
+            await log_channel.send(f'Roles added for {after.mention}: {', '.join(added_roles_mentions)}')
+
+        if roles_removed:
+            removed_roles_mentions = [role.mention for role in roles_removed]
+            await log_channel.send(f'Roles removed from {after.mention}: {', '.join(removed_roles_mentions)}')
+            
+    # Check for timeout changes
+    if before.timed_out_until != after.timed_out_until:
+        if after.timed_out_until:
+            # Member was timed out
+            await log_channel.send(f'{after.mention} was timed out until {after.timed_out_until.strftime("%Y-%m-%d %H:%M:%S UTC")}')
+        else:
+            # Member's timeout was removed
+            await log_channel.send(f'Timeout removed for {after.mention}')
 
 # Define the 'role' command group
 role_group = app_commands.Group(name="role", description="Commands related to roles")
@@ -140,6 +171,10 @@ async def give(interaction: discord.Interaction, member: discord.Member, role: d
     try:
         await member.add_roles(role)
         await interaction.followup.send(f'تم اعطاء الرتبة {role.mention} إلى {member.mention}')
+        # Log the action
+        log_channel = interaction.guild.get_channel(log_channel_id) # Get log channel
+        if log_channel:
+            await log_channel.send(f'{interaction.user.mention} gave the role {role.mention} to {member.mention}')
     except discord.Forbidden:
         await interaction.followup.send('ليس لدي الصلاحية لاعطاء هذه الرتبة.')
     except Exception as e:
@@ -164,6 +199,10 @@ async def remove(interaction: discord.Interaction, member: discord.Member, role:
         await member.remove_roles(role)
         # Keep followup public as originally intended after successful op
         await interaction.followup.send(f'تم ازالة الرتبة {role.mention} من {member.mention}')
+        # Log the action
+        log_channel = interaction.guild.get_channel(log_channel_id) # Get log channel
+        if log_channel:
+            await log_channel.send(f'{interaction.user.mention} removed the role {role.mention} from {member.mention}')
     except discord.Forbidden:
         await interaction.followup.send('ليس لدي الصلاحية لازالة هذه الرتبة.')
     except Exception as e:
@@ -239,6 +278,10 @@ async def timeout(interaction: discord.Interaction, العضو: discord.Member, 
         # Apply the timeout
         await العضو.timeout(datetime.timedelta(seconds=duration), reason=f"Timeout by {interaction.user}")
         await interaction.response.send_message(f'تم توقيف {العضو.mention} لمدة {المدة}', ephemeral=False)
+        # Log the action
+        log_channel = interaction.guild.get_channel(log_channel_id) # Get log channel
+        if log_channel:
+            await log_channel.send(f'{interaction.user.mention} timed out {العضو.mention} for {المدة}')
     except ValueError:
         await interaction.response.send_message('صيغة المدة غير صحيحة. استخدم أرقام فقط (مثال: 1h, 30m, 1d)', ephemeral=True)
     except discord.Forbidden:
@@ -281,11 +324,27 @@ async def ban(interaction: discord.Interaction, العضو: discord.Member, ال
             await interaction.response.send_message(f'تم حظر {العضو.mention}\nالسبب: {السبب}', ephemeral=False)
         else:
             await interaction.response.send_message(f'تم حظر {العضو.mention}', ephemeral=False)
+        
+        # Log the action
+        log_channel = interaction.guild.get_channel(log_channel_id) # Get log channel
+        if log_channel:
+            log_message = f'{interaction.user.mention} banned {العضو.mention}'
+            if السبب:
+                log_message += f' with reason: {السبب}'
+            await log_channel.send(log_message)
             
     except discord.Forbidden:
         await interaction.response.send_message('ليس لدي الصلاحية لحظر هذا العضو.', ephemeral=True)
     except Exception as e:
         await interaction.response.send_message(f'حدث خطأ غير متوقع: {e}', ephemeral=True)
+
+@bot.event
+async def on_member_ban(guild: discord.Guild, user: discord.User):
+    log_channel_id = 1379556255059808337
+    log_channel = guild.get_channel(log_channel_id)
+    
+    if log_channel:
+        await log_channel.send(f'{user.mention} has been banned from the server.')
 
 # Get token from environment variable
 token = os.getenv('DISCORD_TOKEN')
