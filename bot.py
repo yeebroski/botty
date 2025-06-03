@@ -80,14 +80,19 @@ async def rasad(interaction: discord.Interaction, منشن: discord.Member, ال
 async def give(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
     # Check for Manage Roles permission
     if not interaction.user.guild_permissions.manage_roles:
-        await interaction.response.send_message('ليس لديك صلاحية ادارة الرتب.', ephemeral=False)
+        await interaction.response.send_message('ليس لديك صلاحية ادارة الرتب.', ephemeral=True)
         return
     
-    await interaction.response.defer(ephemeral=True)
+    # Check if user is trying to give a role higher than their highest role
+    user_highest_role = max(interaction.user.roles, key=lambda r: r.position)
+    if role.position >= user_highest_role.position:
+        await interaction.response.send_message('لا يمكنك اعطاء رتبة اعلى من رتبتك.', ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=False)  # Changed to False to make it public
 
     try:
         await member.add_roles(role)
-        # Keep followup public as originally intended after successful op
         await interaction.followup.send(f'تم اعطاء الرتبة {role.mention} إلى {member.mention}')
     except discord.Forbidden:
         await interaction.followup.send('ليس لدي الصلاحية لاعطاء هذه الرتبة.')
