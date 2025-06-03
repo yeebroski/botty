@@ -35,7 +35,7 @@ class MyBot(commands.Bot):
 
         # Check for specific user mention
         if "<@1307733573549166713>" in message.content:
-            await message.channel.send("اف تبي القادح حموو 😏 🧤 خله يرجال لاتنمشه تراه بيقدح عليك يلد")
+            await message.reply("اف تبي القادح حموو :smirk_cat: :gloves: خله يرجال لاتنمشه تراه بيقدح عليك يلد")
 
         # Check for exact word "اسم" followed by space or end of message
         if message.content.lower().startswith('اسم ') or message.content.lower() == 'اسم':
