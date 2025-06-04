@@ -10,11 +10,25 @@ load_dotenv()
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.message_content = True
+intents.guild_messages = True
+intents.guilds = True
+intents.members = True
 
 guild_id = 790828063541559296  # Updated guild ID
 channel_id = 1378756844746706975  # Channel ID for sending violation reports
 additional_channel_id = 1378657582507491328  # Additional channel ID
 log_channel_id = 1379556255059808337 # Log Channel ID
+
+def create_log_embed(title: str, description: str, color: discord.Color = discord.Color.blue()) -> discord.Embed:
+    """Helper function to create consistent log embeds"""
+    embed = discord.Embed(
+        title=title,
+        description=description,
+        color=color,
+        timestamp=datetime.datetime.utcnow()
+    )
+    return embed
 
 class MyBot(commands.Bot):
     def __init__(self):
@@ -79,11 +93,10 @@ async def on_ready():
 
 @bot.event
 async def on_member_update(before: discord.Member, after: discord.Member):
-    log_channel_id = 1379556255059808337
     log_channel = after.guild.get_channel(log_channel_id)
 
     if not log_channel:
-        return # Exit if log channel not found
+        return
 
     # Check for role changes
     if before.roles != after.roles:
@@ -91,21 +104,74 @@ async def on_member_update(before: discord.Member, after: discord.Member):
         roles_removed = [role for role in before.roles if role not in after.roles]
 
         if roles_added:
-            added_roles_mentions = [role.mention for role in roles_added]
-            await log_channel.send(f'Roles added for {after.mention}: {', '.join(added_roles_mentions)}')
+            added_roles_names = [role.name for role in roles_added]
+            embed = create_log_embed(
+                "Roles Added",
+                f"**User:** {after.name} ({after.id})\n**Roles Added:** {', '.join(added_roles_names)}",
+                discord.Color.green()
+            )
+            await log_channel.send(embed=embed)
 
         if roles_removed:
-            removed_roles_mentions = [role.mention for role in roles_removed]
-            await log_channel.send(f'Roles removed from {after.mention}: {', '.join(removed_roles_mentions)}')
+            removed_roles_names = [role.name for role in roles_removed]
+            embed = create_log_embed(
+                "Roles Removed",
+                f"**User:** {after.name} ({after.id})\n**Roles Removed:** {', '.join(removed_roles_names)}",
+                discord.Color.red()
+            )
+            await log_channel.send(embed=embed)
             
     # Check for timeout changes
     if before.timed_out_until != after.timed_out_until:
         if after.timed_out_until:
-            # Member was timed out
-            await log_channel.send(f'{after.mention} was timed out until {after.timed_out_until.strftime("%Y-%m-%d %H:%M:%S UTC")}')
+            embed = create_log_embed(
+                "Member Timed Out",
+                f"**User:** {after.name} ({after.id})\n**Timeout Until:** {after.timed_out_until.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                discord.Color.orange()
+            )
+            await log_channel.send(embed=embed)
         else:
-            # Member's timeout was removed
-            await log_channel.send(f'Timeout removed for {after.mention}')
+            embed = create_log_embed(
+                "Timeout Removed",
+                f"**User:** {after.name} ({after.id})",
+                discord.Color.green()
+            )
+            await log_channel.send(embed=embed)
+
+@bot.event
+async def on_message_delete(message):
+    if message.author.bot:
+        return
+        
+    log_channel = message.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Message Deleted",
+        f"**Author:** {message.author.name} ({message.author.id})\n**Channel:** {message.channel.mention}\n**Content:** {message.content}",
+        discord.Color.red()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_message_edit(before, after):
+    if before.author.bot:
+        return
+        
+    if before.content == after.content:
+        return
+
+    log_channel = before.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Message Edited",
+        f"**Author:** {before.author.name} ({before.author.id})\n**Channel:** {before.channel.mention}\n**Before:** {before.content}\n**After:** {after.content}",
+        discord.Color.blue()
+    )
+    await log_channel.send(embed=embed)
 
 # Define the 'role' command group
 role_group = app_commands.Group(name="role", description="Commands related to roles")
@@ -166,15 +232,20 @@ async def give(interaction: discord.Interaction, member: discord.Member, role: d
         await interaction.response.send_message('لا يمكنك اعطاء رتبة اعلى من رتبتك.', ephemeral=True)
         return
 
-    await interaction.response.defer(ephemeral=False)  # Changed to False to make it public
+    await interaction.response.defer(ephemeral=False)
 
     try:
         await member.add_roles(role)
         await interaction.followup.send(f'تم اعطاء الرتبة {role.mention} إلى {member.mention}')
         # Log the action
-        log_channel = interaction.guild.get_channel(log_channel_id) # Get log channel
+        log_channel = interaction.guild.get_channel(log_channel_id)
         if log_channel:
-            await log_channel.send(f'{interaction.user.mention} gave the role {role.mention} to {member.mention}')
+            embed = create_log_embed(
+                "Role Given (Command)",
+                f"**Given By:** {interaction.user.name} ({interaction.user.id})\n**Given To:** {member.name} ({member.id})\n**Role:** {role.name}",
+                discord.Color.green()
+            )
+            await log_channel.send(embed=embed)
     except discord.Forbidden:
         await interaction.followup.send('ليس لدي الصلاحية لاعطاء هذه الرتبة.')
     except Exception as e:
@@ -197,12 +268,16 @@ async def remove(interaction: discord.Interaction, member: discord.Member, role:
 
     try:
         await member.remove_roles(role)
-        # Keep followup public as originally intended after successful op
         await interaction.followup.send(f'تم ازالة الرتبة {role.mention} من {member.mention}')
         # Log the action
-        log_channel = interaction.guild.get_channel(log_channel_id) # Get log channel
+        log_channel = interaction.guild.get_channel(log_channel_id)
         if log_channel:
-            await log_channel.send(f'{interaction.user.mention} removed the role {role.mention} from {member.mention}')
+            embed = create_log_embed(
+                "Role Removed (Command)",
+                f"**Removed By:** {interaction.user.name} ({interaction.user.id})\n**Removed From:** {member.name} ({member.id})\n**Role:** {role.name}",
+                discord.Color.red()
+            )
+            await log_channel.send(embed=embed)
     except discord.Forbidden:
         await interaction.followup.send('ليس لدي الصلاحية لازالة هذه الرتبة.')
     except Exception as e:
@@ -254,9 +329,7 @@ async def timeout(interaction: discord.Interaction, العضو: discord.Member, 
         await interaction.response.send_message('ليس لديك صلاحية توقيف الأعضاء.', ephemeral=True)
         return
 
-    # Parse the duration
     try:
-        # Convert the duration string to seconds
         duration = 0
         if المدة.endswith('s'):
             duration = int(المدة[:-1])
@@ -270,18 +343,21 @@ async def timeout(interaction: discord.Interaction, العضو: discord.Member, 
             await interaction.response.send_message('صيغة المدة غير صحيحة. استخدم s, m, h, أو d (مثال: 1h, 30m, 1d)', ephemeral=True)
             return
 
-        # Check if duration is within limits (max 28 days)
-        if duration > 2419200:  # 28 days in seconds
+        if duration > 2419200:
             await interaction.response.send_message('لا يمكن توقيف عضو لأكثر من 28 يوم.', ephemeral=True)
             return
 
-        # Apply the timeout
         await العضو.timeout(datetime.timedelta(seconds=duration), reason=f"Timeout by {interaction.user}")
         await interaction.response.send_message(f'تم توقيف {العضو.mention} لمدة {المدة}', ephemeral=False)
-        # Log the action
-        log_channel = interaction.guild.get_channel(log_channel_id) # Get log channel
+        
+        log_channel = interaction.guild.get_channel(log_channel_id)
         if log_channel:
-            await log_channel.send(f'{interaction.user.mention} timed out {العضو.mention} for {المدة}')
+            embed = create_log_embed(
+                "Member Timed Out (Command)",
+                f"**Timed Out By:** {interaction.user.name} ({interaction.user.id})\n**User:** {العضو.name} ({العضو.id})\n**Duration:** {المدة}",
+                discord.Color.orange()
+            )
+            await log_channel.send(embed=embed)
     except ValueError:
         await interaction.response.send_message('صيغة المدة غير صحيحة. استخدم أرقام فقط (مثال: 1h, 30m, 1d)', ephemeral=True)
     except discord.Forbidden:
@@ -302,7 +378,6 @@ async def ban(interaction: discord.Interaction, العضو: discord.Member, ال
         await interaction.response.send_message('ليس لديك صلاحية حظر الأعضاء.', ephemeral=True)
         return
 
-    # Check if user is trying to ban someone with higher role
     user_highest_role = max(interaction.user.roles, key=lambda r: r.position)
     target_highest_role = max(العضو.roles, key=lambda r: r.position)
     
@@ -311,27 +386,25 @@ async def ban(interaction: discord.Interaction, العضو: discord.Member, ال
         return
 
     try:
-        # Create the ban reason
         ban_reason = f"Banned by {interaction.user}"
         if السبب:
             ban_reason += f" | Reason: {السبب}"
 
-        # Ban the member
         await العضو.ban(reason=ban_reason)
         
-        # Send confirmation message
         if السبب:
             await interaction.response.send_message(f'تم حظر {العضو.mention}\nالسبب: {السبب}', ephemeral=False)
         else:
             await interaction.response.send_message(f'تم حظر {العضو.mention}', ephemeral=False)
         
-        # Log the action
-        log_channel = interaction.guild.get_channel(log_channel_id) # Get log channel
+        log_channel = interaction.guild.get_channel(log_channel_id)
         if log_channel:
-            log_message = f'{interaction.user.mention} banned {العضو.mention}'
-            if السبب:
-                log_message += f' with reason: {السبب}'
-            await log_channel.send(log_message)
+            embed = create_log_embed(
+                "Member Banned (Command)",
+                f"**Banned By:** {interaction.user.name} ({interaction.user.id})\n**User:** {العضو.name} ({العضو.id})\n**Reason:** {السبب if السبب else 'No reason provided'}",
+                discord.Color.dark_red()
+            )
+            await log_channel.send(embed=embed)
             
     except discord.Forbidden:
         await interaction.response.send_message('ليس لدي الصلاحية لحظر هذا العضو.', ephemeral=True)
@@ -340,11 +413,15 @@ async def ban(interaction: discord.Interaction, العضو: discord.Member, ال
 
 @bot.event
 async def on_member_ban(guild: discord.Guild, user: discord.User):
-    log_channel_id = 1379556255059808337
     log_channel = guild.get_channel(log_channel_id)
     
     if log_channel:
-        await log_channel.send(f'{user.mention} has been banned from the server.')
+        embed = create_log_embed(
+            "Member Banned",
+            f"**User:** {user.name} ({user.id})",
+            discord.Color.dark_red()
+        )
+        await log_channel.send(embed=embed)
 
 # Get token from environment variable
 token = os.getenv('DISCORD_TOKEN')
