@@ -10,10 +10,11 @@ load_dotenv()
 
 intents = discord.Intents.default()
 intents.message_content = True
-intents.message_content = True
 intents.guild_messages = True
 intents.guilds = True
 intents.members = True
+intents.voice_states = True
+intents.guild_presences = True
 
 guild_id = 790828063541559296  # Updated guild ID
 channel_id = 1378756844746706975  # Channel ID for sending violation reports
@@ -420,6 +421,319 @@ async def on_member_ban(guild: discord.Guild, user: discord.User):
             "Member Banned",
             f"**User:** {user.name} ({user.id})",
             discord.Color.dark_red()
+        )
+        await log_channel.send(embed=embed)
+
+@bot.event
+async def on_guild_channel_create(channel):
+    log_channel = channel.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Channel Created",
+        f"**Channel:** {channel.mention}\n**Type:** {channel.type}\n**Category:** {channel.category.name if channel.category else 'None'}",
+        discord.Color.green()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_guild_channel_delete(channel):
+    log_channel = channel.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Channel Deleted",
+        f"**Channel Name:** {channel.name}\n**Type:** {channel.type}\n**Category:** {channel.category.name if channel.category else 'None'}",
+        discord.Color.red()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_guild_channel_update(before, after):
+    log_channel = before.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    changes = []
+    if before.name != after.name:
+        changes.append(f"**Name:** {before.name} → {after.name}")
+    if before.category != after.category:
+        changes.append(f"**Category:** {before.category.name if before.category else 'None'} → {after.category.name if after.category else 'None'}")
+    if before.position != after.position:
+        changes.append(f"**Position:** {before.position} → {after.position}")
+
+    if changes:
+        embed = create_log_embed(
+            "Channel Updated",
+            f"**Channel:** {after.mention}\n" + "\n".join(changes),
+            discord.Color.blue()
+        )
+        await log_channel.send(embed=embed)
+
+@bot.event
+async def on_thread_create(thread):
+    log_channel = thread.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Thread Created",
+        f"**Thread:** {thread.mention}\n**Parent Channel:** {thread.parent.mention}\n**Created By:** {thread.owner.name if thread.owner else 'Unknown'}",
+        discord.Color.green()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_thread_delete(thread):
+    log_channel = thread.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Thread Deleted",
+        f"**Thread Name:** {thread.name}\n**Parent Channel:** {thread.parent.mention}",
+        discord.Color.red()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_thread_update(before, after):
+    log_channel = before.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    changes = []
+    if before.name != after.name:
+        changes.append(f"**Name:** {before.name} → {after.name}")
+    if before.archived != after.archived:
+        changes.append(f"**Archived:** {before.archived} → {after.archived}")
+    if before.locked != after.locked:
+        changes.append(f"**Locked:** {before.locked} → {after.locked}")
+
+    if changes:
+        embed = create_log_embed(
+            "Thread Updated",
+            f"**Thread:** {after.mention}\n" + "\n".join(changes),
+            discord.Color.blue()
+        )
+        await log_channel.send(embed=embed)
+
+@bot.event
+async def on_guild_role_create(role):
+    log_channel = role.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Role Created",
+        f"**Role:** {role.name}\n**Color:** {role.color}\n**Position:** {role.position}",
+        discord.Color.green()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_guild_role_delete(role):
+    log_channel = role.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Role Deleted",
+        f"**Role Name:** {role.name}\n**Color:** {role.color}\n**Position:** {role.position}",
+        discord.Color.red()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_guild_role_update(before, after):
+    log_channel = before.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    changes = []
+    if before.name != after.name:
+        changes.append(f"**Name:** {before.name} → {after.name}")
+    if before.color != after.color:
+        changes.append(f"**Color:** {before.color} → {after.color}")
+    if before.position != after.position:
+        changes.append(f"**Position:** {before.position} → {after.position}")
+    if before.permissions != after.permissions:
+        changes.append("**Permissions:** Updated")
+
+    if changes:
+        embed = create_log_embed(
+            "Role Updated",
+            f"**Role:** {after.name}\n" + "\n".join(changes),
+            discord.Color.blue()
+        )
+        await log_channel.send(embed=embed)
+
+@bot.event
+async def on_member_join(member):
+    log_channel = member.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Member Joined",
+        f"**User:** {member.name} ({member.id})\n**Account Created:** {member.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+        discord.Color.green()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_member_remove(member):
+    log_channel = member.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Member Left",
+        f"**User:** {member.name} ({member.id})\n**Joined At:** {member.joined_at.strftime('%Y-%m-%d %H:%M:%S UTC') if member.joined_at else 'Unknown'}",
+        discord.Color.red()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_member_update(before, after):
+    log_channel = after.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    # Check for nickname changes
+    if before.nick != after.nick:
+        embed = create_log_embed(
+            "Nickname Changed",
+            f"**User:** {after.name} ({after.id})\n**Before:** {before.nick or before.name}\n**After:** {after.nick or after.name}",
+            discord.Color.blue()
+        )
+        await log_channel.send(embed=embed)
+
+    # Check for role changes
+    if before.roles != after.roles:
+        roles_added = [role for role in after.roles if role not in before.roles]
+        roles_removed = [role for role in before.roles if role not in after.roles]
+
+        if roles_added:
+            added_roles_names = [role.name for role in roles_added]
+            embed = create_log_embed(
+                "Roles Added",
+                f"**User:** {after.name} ({after.id})\n**Roles Added:** {', '.join(added_roles_names)}",
+                discord.Color.green()
+            )
+            await log_channel.send(embed=embed)
+
+        if roles_removed:
+            removed_roles_names = [role.name for role in roles_removed]
+            embed = create_log_embed(
+                "Roles Removed",
+                f"**User:** {after.name} ({after.id})\n**Roles Removed:** {', '.join(removed_roles_names)}",
+                discord.Color.red()
+            )
+            await log_channel.send(embed=embed)
+
+    # Check for timeout changes
+    if before.timed_out_until != after.timed_out_until:
+        if after.timed_out_until:
+            embed = create_log_embed(
+                "Member Timed Out",
+                f"**User:** {after.name} ({after.id})\n**Timeout Until:** {after.timed_out_until.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                discord.Color.orange()
+            )
+            await log_channel.send(embed=embed)
+        else:
+            embed = create_log_embed(
+                "Timeout Removed",
+                f"**User:** {after.name} ({after.id})",
+                discord.Color.green()
+            )
+            await log_channel.send(embed=embed)
+
+@bot.event
+async def on_voice_state_update(member, before, after):
+    log_channel = member.guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    # Member joined voice channel
+    if not before.channel and after.channel:
+        embed = create_log_embed(
+            "Member Joined Voice Channel",
+            f"**User:** {member.name} ({member.id})\n**Channel:** {after.channel.name}",
+            discord.Color.green()
+        )
+        await log_channel.send(embed=embed)
+
+    # Member left voice channel
+    elif before.channel and not after.channel:
+        embed = create_log_embed(
+            "Member Left Voice Channel",
+            f"**User:** {member.name} ({member.id})\n**Channel:** {before.channel.name}",
+            discord.Color.red()
+        )
+        await log_channel.send(embed=embed)
+
+    # Member switched voice channels
+    elif before.channel and after.channel and before.channel != after.channel:
+        embed = create_log_embed(
+            "Member Switched Voice Channels",
+            f"**User:** {member.name} ({member.id})\n**From:** {before.channel.name}\n**To:** {after.channel.name}",
+            discord.Color.blue()
+        )
+        await log_channel.send(embed=embed)
+
+    # Voice state changes (mute/deafen)
+    if before.self_mute != after.self_mute or before.self_deaf != after.self_deaf:
+        changes = []
+        if before.self_mute != after.self_mute:
+            changes.append(f"**Self Mute:** {before.self_mute} → {after.self_mute}")
+        if before.self_deaf != after.self_deaf:
+            changes.append(f"**Self Deafen:** {before.self_deaf} → {after.self_deaf}")
+
+        if changes:
+            embed = create_log_embed(
+                "Voice State Updated",
+                f"**User:** {member.name} ({member.id})\n" + "\n".join(changes),
+                discord.Color.blue()
+            )
+            await log_channel.send(embed=embed)
+
+@bot.event
+async def on_member_unban(guild, user):
+    log_channel = guild.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    embed = create_log_embed(
+        "Member Unbanned",
+        f"**User:** {user.name} ({user.id})",
+        discord.Color.green()
+    )
+    await log_channel.send(embed=embed)
+
+@bot.event
+async def on_guild_update(before, after):
+    log_channel = after.get_channel(log_channel_id)
+    if not log_channel:
+        return
+
+    changes = []
+    if before.name != after.name:
+        changes.append(f"**Name:** {before.name} → {after.name}")
+    if before.icon != after.icon:
+        changes.append("**Icon:** Updated")
+    if before.banner != after.banner:
+        changes.append("**Banner:** Updated")
+    if before.verification_level != after.verification_level:
+        changes.append(f"**Verification Level:** {before.verification_level} → {after.verification_level}")
+
+    if changes:
+        embed = create_log_embed(
+            "Server Updated",
+            "\n".join(changes),
+            discord.Color.blue()
         )
         await log_channel.send(embed=embed)
 
