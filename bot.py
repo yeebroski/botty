@@ -14,7 +14,7 @@ intents.guild_messages = True
 intents.guilds = True
 intents.members = True
 intents.voice_states = True
-intents.guild_presences = True
+intents.presences = True
 
 guild_id = 790828063541559296  # Updated guild ID
 channel_id = 1378756844746706975  # Channel ID for sending violation reports
