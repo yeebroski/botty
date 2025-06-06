@@ -49,6 +49,16 @@ class MyBot(commands.Bot):
         if message.author.bot:
             return
 
+        # Check for "استلام" message
+        if "استلام" in message.content.lower():
+            await message.reply(f"**__ تم استلام التكت من قبل الادري {message.author.mention} يرجى عدم تدخل الفريق الادري\n\nتفضل كيف اقدر اخدمك ؟ __**")
+            return
+
+        # Check for ".." message
+        if ".." in message.content:
+            await message.reply("https://media.discordapp.net/attachments/1374077173178171422/1374835686791970938/789800330045030401.webp?ex=68322202&is=6830d082&hm=12832bb0a850243ac7052cff9467923493cf8e23413d320943968b771b626884&=&format=webp")
+            return
+
         # Check for specific user mention
         if "<@1307733573549166713>" in message.content:
             await message.reply("اف تبي القادح حموو :smirk_cat: :gloves: خله يرجال لاتنمشه تراه بيقدح عليك يلد")
