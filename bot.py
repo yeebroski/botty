@@ -49,6 +49,11 @@ class MyBot(commands.Bot):
         if message.author.bot:
             return
 
+        # Check for "مرحبا" message
+        if "مرحبا" in message.content.lower():
+            await message.reply("مرحباً بك! كيف حالك اليوم؟")
+            return
+
         # Check for "استلام" message
         if "استلام" in message.content.lower():
             await message.reply(f"**__ تم استلام التكت من قبل الادري {message.author.mention} يرجى عدم تدخل الفريق الادري\n\nتفضل كيف اقدر اخدمك ؟ __**")
