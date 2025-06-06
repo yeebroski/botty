@@ -49,6 +49,11 @@ class MyBot(commands.Bot):
         if message.author.bot:
             return
 
+        # Check for "شكرا" message
+        if "شكرا" in message.content.lower():
+            await message.reply("العفو! دائماً في خدمتك 😊")
+            return
+
         # Check for "مرحبا" message
         if "مرحبا" in message.content.lower():
             await message.reply("مرحباً بك! كيف حالك اليوم؟")
