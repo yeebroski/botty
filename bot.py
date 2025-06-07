@@ -113,6 +113,33 @@ async def on_ready():
 
 @bot.event
 async def on_member_update(before: discord.Member, after: discord.Member):
+    # Check for role changes
+    if before.roles != after.roles:
+        roles_added = [role for role in after.roles if role not in before.roles]
+        roles_removed = [role for role in before.roles if role not in after.roles]
+
+        if roles_added:
+            added_roles_names = [role.name for role in roles_added]
+            embed = create_log_embed(
+                "Roles Added",
+                f"**User:** {after.name} ({after.id})\n**Roles Added:** {', '.join(added_roles_names)}",
+                discord.Color.green()
+            )
+            role_give_log_general = after.guild.get_channel(1372614055352602844)
+            if role_give_log_general:
+                await role_give_log_general.send(embed=embed)
+
+        if roles_removed:
+            removed_roles_names = [role.name for role in roles_removed]
+            embed = create_log_embed(
+                "Roles Removed",
+                f"**User:** {after.name} ({after.id})\n**Roles Removed:** {', '.join(removed_roles_names)}",
+                discord.Color.red()
+            )
+            role_remove_log_general = after.guild.get_channel(1372614104296194169)
+            if role_remove_log_general:
+                await role_remove_log_general.send(embed=embed)
+
     # Check for timeout changes
     if before.timed_out_until != after.timed_out_until:
         timeout_log_channel = after.guild.get_channel(1372613020592766996)
