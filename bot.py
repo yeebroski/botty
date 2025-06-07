@@ -164,8 +164,8 @@ async def on_message_delete(message):
     if message.author.bot:
         return
         
-    log_channel = message.guild.get_channel(log_channel_id)
-    if not log_channel:
+    msg_log_channel = message.guild.get_channel(1371447784296677517)
+    if not msg_log_channel:
         return
 
     embed = create_log_embed(
@@ -173,7 +173,7 @@ async def on_message_delete(message):
         f"**Author:** {message.author.name} ({message.author.id})\n**Channel:** {message.channel.mention}\n**Content:** {message.content}",
         discord.Color.red()
     )
-    await log_channel.send(embed=embed)
+    await msg_log_channel.send(embed=embed)
 
 @bot.event
 async def on_message_edit(before, after):
@@ -183,8 +183,8 @@ async def on_message_edit(before, after):
     if before.content == after.content:
         return
 
-    log_channel = before.guild.get_channel(log_channel_id)
-    if not log_channel:
+    msg_log_channel = before.guild.get_channel(1371447784296677517)
+    if not msg_log_channel:
         return
 
     embed = create_log_embed(
@@ -192,7 +192,7 @@ async def on_message_edit(before, after):
         f"**Author:** {before.author.name} ({before.author.id})\n**Channel:** {before.channel.mention}\n**Before:** {before.content}\n**After:** {after.content}",
         discord.Color.blue()
     )
-    await log_channel.send(embed=embed)
+    await msg_log_channel.send(embed=embed)
 
 # Define the 'role' command group
 role_group = app_commands.Group(name="role", description="Commands related to roles")
@@ -259,14 +259,14 @@ async def give(interaction: discord.Interaction, member: discord.Member, role: d
         await member.add_roles(role)
         await interaction.followup.send(f'تم اعطاء الرتبة {role.mention} إلى {member.mention}')
         # Log the action
-        log_channel = interaction.guild.get_channel(log_channel_id)
-        if log_channel:
+        role_give_log = interaction.guild.get_channel(1372614055352602844)
+        if role_give_log:
             embed = create_log_embed(
                 "Role Given (Command)",
                 f"**Given By:** {interaction.user.name} ({interaction.user.id})\n**Given To:** {member.name} ({member.id})\n**Role:** {role.name}",
                 discord.Color.green()
             )
-            await log_channel.send(embed=embed)
+            await role_give_log.send(embed=embed)
     except discord.Forbidden:
         await interaction.followup.send('ليس لدي الصلاحية لاعطاء هذه الرتبة.')
     except Exception as e:
@@ -291,14 +291,14 @@ async def remove(interaction: discord.Interaction, member: discord.Member, role:
         await member.remove_roles(role)
         await interaction.followup.send(f'تم ازالة الرتبة {role.mention} من {member.mention}')
         # Log the action
-        log_channel = interaction.guild.get_channel(log_channel_id)
-        if log_channel:
+        role_remove_log = interaction.guild.get_channel(1372614104296194169)
+        if role_remove_log:
             embed = create_log_embed(
                 "Role Removed (Command)",
                 f"**Removed By:** {interaction.user.name} ({interaction.user.id})\n**Removed From:** {member.name} ({member.id})\n**Role:** {role.name}",
                 discord.Color.red()
             )
-            await log_channel.send(embed=embed)
+            await role_remove_log.send(embed=embed)
     except discord.Forbidden:
         await interaction.followup.send('ليس لدي الصلاحية لازالة هذه الرتبة.')
     except Exception as e:
@@ -325,6 +325,15 @@ async def set_nickname(ctx, member: discord.Member, *, new_nickname: str):
     try:
         await member.edit(nick=new_nickname)
         await ctx.send(f'تم تغيير اسم {member.mention} إلى {new_nickname}')
+        # Log the action
+        nickname_log_channel = ctx.guild.get_channel(1372613922518994965)
+        if nickname_log_channel:
+            embed = create_log_embed(
+                "Nickname Changed (Command)",
+                f"**Changed By:** {ctx.author.name} ({ctx.author.id})\n**User:** {member.name} ({member.id})\n**Before:** {member.nick or member.name}\n**After:** {new_nickname}",
+                discord.Color.blue()
+            )
+            await nickname_log_channel.send(embed=embed)
     except discord.Forbidden:
         await ctx.send('ليس لدي الصلاحية لتغيير الاسم.')
     except Exception as e:
@@ -434,20 +443,20 @@ async def ban(interaction: discord.Interaction, العضو: discord.Member, ال
 
 @bot.event
 async def on_member_ban(guild: discord.Guild, user: discord.User):
-    log_channel = guild.get_channel(log_channel_id)
+    ban_log_channel = guild.get_channel(1349964174075232276)
     
-    if log_channel:
+    if ban_log_channel:
         embed = create_log_embed(
             "Member Banned",
             f"**User:** {user.name} ({user.id})",
             discord.Color.dark_red()
         )
-        await log_channel.send(embed=embed)
+        await ban_log_channel.send(embed=embed)
 
 @bot.event
 async def on_guild_channel_create(channel):
-    log_channel = channel.guild.get_channel(log_channel_id)
-    if not log_channel:
+    channel_create_log = channel.guild.get_channel(1372613128214282340)
+    if not channel_create_log:
         return
 
     embed = create_log_embed(
@@ -455,12 +464,12 @@ async def on_guild_channel_create(channel):
         f"**Channel:** {channel.mention}\n**Type:** {channel.type}\n**Category:** {channel.category.name if channel.category else 'None'}",
         discord.Color.green()
     )
-    await log_channel.send(embed=embed)
+    await channel_create_log.send(embed=embed)
 
 @bot.event
 async def on_guild_channel_delete(channel):
-    log_channel = channel.guild.get_channel(log_channel_id)
-    if not log_channel:
+    channel_delete_log = channel.guild.get_channel(1372613339414401044)
+    if not channel_delete_log:
         return
 
     embed = create_log_embed(
@@ -468,12 +477,12 @@ async def on_guild_channel_delete(channel):
         f"**Channel Name:** {channel.name}\n**Type:** {channel.type}\n**Category:** {channel.category.name if channel.category else 'None'}",
         discord.Color.red()
     )
-    await log_channel.send(embed=embed)
+    await channel_delete_log.send(embed=embed)
 
 @bot.event
 async def on_guild_channel_update(before, after):
-    log_channel = before.guild.get_channel(log_channel_id)
-    if not log_channel:
+    channel_edit_log = before.guild.get_channel(1372614348907741344)
+    if not channel_edit_log:
         return
 
     changes = []
@@ -490,7 +499,7 @@ async def on_guild_channel_update(before, after):
             f"**Channel:** {after.mention}\n" + "\n".join(changes),
             discord.Color.blue()
         )
-        await log_channel.send(embed=embed)
+        await channel_edit_log.send(embed=embed)
 
 @bot.event
 async def on_thread_create(thread):
@@ -542,8 +551,8 @@ async def on_thread_update(before, after):
 
 @bot.event
 async def on_guild_role_create(role):
-    log_channel = role.guild.get_channel(log_channel_id)
-    if not log_channel:
+    role_create_log = role.guild.get_channel(1372613271122874530)
+    if not role_create_log:
         return
 
     embed = create_log_embed(
@@ -551,12 +560,12 @@ async def on_guild_role_create(role):
         f"**Role:** {role.name}\n**Color:** {role.color}\n**Position:** {role.position}",
         discord.Color.green()
     )
-    await log_channel.send(embed=embed)
+    await role_create_log.send(embed=embed)
 
 @bot.event
 async def on_guild_role_delete(role):
-    log_channel = role.guild.get_channel(log_channel_id)
-    if not log_channel:
+    role_delete_log = role.guild.get_channel(1372613513004060774)
+    if not role_delete_log:
         return
 
     embed = create_log_embed(
@@ -564,7 +573,7 @@ async def on_guild_role_delete(role):
         f"**Role Name:** {role.name}\n**Color:** {role.color}\n**Position:** {role.position}",
         discord.Color.red()
     )
-    await log_channel.send(embed=embed)
+    await role_delete_log.send(embed=embed)
 
 @bot.event
 async def on_guild_role_update(before, after):
@@ -622,14 +631,35 @@ async def on_member_update(before, after):
     if not log_channel:
         return
 
+    # Check for timeout changes
+    if before.timed_out_until != after.timed_out_until:
+        timeout_log_channel = after.guild.get_channel(1372613020592766996)
+        if timeout_log_channel:
+            if after.timed_out_until:
+                embed = create_log_embed(
+                    "Member Timed Out",
+                    f"**User:** {after.name} ({after.id})\n**Timeout Until:** {after.timed_out_until.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                    discord.Color.orange()
+                )
+                await timeout_log_channel.send(embed=embed)
+            else:
+                embed = create_log_embed(
+                    "Timeout Removed",
+                    f"**User:** {after.name} ({after.id})",
+                    discord.Color.green()
+                )
+                await timeout_log_channel.send(embed=embed)
+
     # Check for nickname changes
     if before.nick != after.nick:
-        embed = create_log_embed(
-            "Nickname Changed",
-            f"**User:** {after.name} ({after.id})\n**Before:** {before.nick or before.name}\n**After:** {after.nick or after.name}",
-            discord.Color.blue()
-        )
-        await log_channel.send(embed=embed)
+        nickname_log_channel = after.guild.get_channel(1372613922518994965)
+        if nickname_log_channel:
+            embed = create_log_embed(
+                "Nickname Changed",
+                f"**User:** {after.name} ({after.id})\n**Before:** {before.nick or before.name}\n**After:** {after.nick or after.name}",
+                discord.Color.blue()
+            )
+            await nickname_log_channel.send(embed=embed)
 
     # Check for role changes
     if before.roles != after.roles:
@@ -651,23 +681,6 @@ async def on_member_update(before, after):
                 "Roles Removed",
                 f"**User:** {after.name} ({after.id})\n**Roles Removed:** {', '.join(removed_roles_names)}",
                 discord.Color.red()
-            )
-            await log_channel.send(embed=embed)
-
-    # Check for timeout changes
-    if before.timed_out_until != after.timed_out_until:
-        if after.timed_out_until:
-            embed = create_log_embed(
-                "Member Timed Out",
-                f"**User:** {after.name} ({after.id})\n**Timeout Until:** {after.timed_out_until.strftime('%Y-%m-%d %H:%M:%S UTC')}",
-                discord.Color.orange()
-            )
-            await log_channel.send(embed=embed)
-        else:
-            embed = create_log_embed(
-                "Timeout Removed",
-                f"**User:** {after.name} ({after.id})",
-                discord.Color.green()
             )
             await log_channel.send(embed=embed)
 
@@ -735,8 +748,8 @@ async def on_member_unban(guild, user):
 
 @bot.event
 async def on_guild_update(before, after):
-    log_channel = after.get_channel(log_channel_id)
-    if not log_channel:
+    server_edit_log = after.get_channel(1372614642169282703)
+    if not server_edit_log:
         return
 
     changes = []
@@ -755,7 +768,7 @@ async def on_guild_update(before, after):
             "\n".join(changes),
             discord.Color.blue()
         )
-        await log_channel.send(embed=embed)
+        await server_edit_log.send(embed=embed)
 
 # Get token from environment variable
 token = os.getenv('DISCORD_TOKEN')
